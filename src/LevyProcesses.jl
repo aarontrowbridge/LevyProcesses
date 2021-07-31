@@ -1,13 +1,14 @@
 module LevyProcesses
 
-using Base: Float64
 export HestonModel
 
-export VanillaCallOption
+export VanillaCallOption, VanillaPutOption
+export price, delta
 
-export price
+export volatility_surface
 
 include("models.jl")
+include("datagenerator.jl")
 
 end
 
