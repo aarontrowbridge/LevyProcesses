@@ -20,7 +20,7 @@ mutable struct HestonModel <: AbstractModel
     
     function HestonModel(S :: Float64, 
                          r :: Float64; 
-                         θ=[0.08, 0.1, -0.8, 3.0, 0.25]::Vector{Float64})
+                         θ=[3.0, 0.1, 0.25, -0.8, 0.08]::Vector{Float64})
 
         @assert length(θ) == 5 "should be 5 parameters idiot!"
 
@@ -36,9 +36,11 @@ mutable struct HestonModel <: AbstractModel
 
         A(u, t) = A₁(u, t) / A₂(u, t)
 
-        D(u, t) = log(d(u)) + 0.5 * (κ - d(u)) * t - log(0.5 * (d(u) + ξ(u) + (d(u) - ξ(u)) * exp(-d(u) * t))) 
+        D(u, t) = log(d(u)) + 0.5 * (κ - d(u)) * t 
+                  - log(0.5 * (d(u) + ξ(u) + (d(u) - ξ(u)) * exp(-d(u) * t))) 
 
-        φ(u, t) = exp(im * u * (log(S) + r * t - t * κ * v̄ * ρ / σ) - v₀ * A(u, t) + 2 * κ * v̄ / σ^2 * D(u, t))
+        φ(u, t) = exp(im * u * (log(S) + r * t - t * κ * v̄ * ρ / σ) 
+                      - v₀ * A(u, t) + 2 * κ * v̄ / σ^2 * D(u, t))
 
         return new(S, r, θ, φ)
     end
@@ -56,8 +58,8 @@ mutable struct VanillaCallOption{M <: AbstractModel} <: AbstractOption
     K     :: Float64
     T     :: Float64
     model :: M
-    function VanillaCallOption(K::R, T::D, model::AbstractModel) where {R <: Real, D <: Real}
-        new{typeof(model)}(float(K), float(T), model)
+    function VanillaCallOption(K::N, T::N, model::AbstractModel) where {N<:Number}
+        new(float(K), float(T), model)
     end
 end
 
@@ -65,8 +67,8 @@ mutable struct VanillaPutOption{M <: AbstractModel} <: AbstractOption
     K     :: Float64
     T     :: Float64
     model :: M 
-    function VanillaPutOption(K::R, T::D, model::AbstractModel) where {R <: Real, D <: Real}
-        new{typeof(model)}(float(K), float(T), model)
+    function VanillaPutOption(K::N, T::N, model::AbstractModel) where {N<:Number}
+        new(float(K), float(T), model)
     end
 end
 
@@ -75,16 +77,16 @@ end
 # 
 
 function price(option::VanillaCallOption)
-    K = option.K
+    logK = log(option.K)
     T = float(option.T) 
 
     φ = option.model.φ
 
-    f₁(u) = real(exp(-im * u * log(K)) / (im * u) * φ(u - im, T))
-    f₂(u) = real(exp(-im * u * log(K)) / (im * u) * φ(u, T))
+    f₁(u) = real(exp(-im * u * logK) / (im * u) * φ(u - im, T))
+    f₂(u) = real(exp(-im * u * logK) / (im * u) * φ(u, T))
 
-    I₁, err1 = quadgk(f₁, 0, 5)
-    I₂, err2 = quadgk(f₂, 0, 5)
+    I₁, err1 = quadgk(f₁, 0, 10)
+    I₂, err2 = quadgk(f₂, 0, 10)
 
     S = option.model.S
     r = option.model.r
@@ -98,7 +100,7 @@ function price(option::VanillaPutOption)
 end
 
 function delta(option::VanillaCallOption)
-    K = option.K
+    logK = log(option.K)
     T = float(option.T)
 
     φ = option.model.φ
@@ -106,8 +108,8 @@ function delta(option::VanillaCallOption)
     f₁(u) = real(exp(-im * u * log(K)) * (u - im) / u * φ(u - im, T))
     f₂(u) = real(exp(-im * u * log(K)) * φ(u, T))
 
-    ∂I₁, err1 = quadgk(f₁, 0, 5)
-    ∂I₂, err2 = quadgk(f₂, 0, 5)
+    ∂I₁, err1 = quadgk(f₁, 0, 10)
+    ∂I₂, err2 = quadgk(f₂, 0, 10)
 
     S = option.model.S
     r = option.model.r

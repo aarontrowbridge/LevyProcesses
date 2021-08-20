@@ -1,4 +1,4 @@
-push!(LOAD_PATH, "/Users/aaron/projects/LevyProcesses/src")
+push!(LOAD_PATH, "/home/aaron/projects/LevyProcesses/src")
 
 using LevyProcesses
 
@@ -21,5 +21,3 @@ pyplot()
 
 plot(volsurface)
 savefig(pwd()*"/plots/surface_slices.png")
-
-print(volsurface)
